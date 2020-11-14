@@ -21,12 +21,12 @@ namespace ConsoleApp2
         {
             var scheduled = new ScheduleDefiner();
             var schedule = scheduled
-                .OnMonthsOfYear(MonthOfYear.Jan)
+                //.OnMonthsOfYear(MonthOfYear.Jan)
                 .OnWeekDays(DayOfWeek.Monday)
                 .OnTimes(Time.At(12))
                 .Every(TimeSpan.FromMinutes(5))
                 .Schedule;
-            foreach(var t in schedule.GetScheduledTimes(DateTime.Now))
+            foreach(var t in schedule.GetScheduledTimes(DateTime.Now, TimeSpan.FromDays(5)))
             {
                 Console.WriteLine(t);
             }
@@ -48,27 +48,29 @@ namespace ConsoleApp2
                 return true;
             }
 
-            public IEnumerable<DateTime> GetScheduledTimes(DateTime current)
+            public IEnumerable<DateTime> GetScheduledTimes(DateTime current,  TimeSpan howFarAhead)
             {
                 IEnumerable<DateTime> monthDates;
+                var endDate = current + howFarAhead;
+                bool IsValid(DateTime dt) => dt >= current &&  dt < endDate;
 
                 if (MonthsOfYear.Any())
                 {
-                    monthDates = MonthsOfYear.Select(m => new DateTime(current.Year, (int)m, 1, 0, 0, 0));
+                    monthDates = MonthsOfYear.Select(m => new DateTime(current.Year, (int)m, 1, 0, 0, 0)).Where(IsValid);
                 }
                 else
                 {
-                    monthDates = new[] { new DateTime(current.Year, current.Month, 1, 0, 0, 0) };
+                    monthDates = new[] { current };
                 }
                 IEnumerable<DateTime> dayDates;
                 if (!DaysOfMonth.Any() && !WeekDays.Any())
                 {
-                    dayDates = monthDates.SelectMany(d => PartsInPeriod(Every.Value, d.AddMonths(1) - d).Select(p => d + p));
+                    dayDates = new[] { current };
                 }
                 else
                 {
-                    dayDates = monthDates.SelectMany(m => DaysOfMonth.Select(d => new DateTime(m.Year, m.Month, d, 0, 0, 0)));
-                    var dayDates2 = monthDates.SelectMany(m => WeekDays.SelectMany(wd => DayOfWeekDatesForMonth(wd, m.Year, m.Day)));
+                    dayDates = monthDates.SelectMany(m => DaysOfMonth.Select(d => new DateTime(m.Year, m.Month, d, 0, 0, 0))).Where(IsValid);
+                    var dayDates2 = monthDates.SelectMany(m => WeekDays.SelectMany(wd => DayOfWeekDatesForMonth(wd, m.Year, m.Month))).Where(IsValid);
                     if (dayDates.Any() && dayDates2.Any())
                     {
                         dayDates = dayDates.Intersect(dayDates2);
@@ -81,12 +83,12 @@ namespace ConsoleApp2
 
                 if (Times.Any())
                 {
-                    dayDates = dayDates.SelectMany(d => Times.Select(t => new DateTime(d.Year, d.Month, d.Day, t.Hour, t.Minute ?? 0, 0)));
+                    dayDates = dayDates.SelectMany(d => Times.Select(t => new DateTime(d.Year, d.Month, d.Day, t.Hour, t.Minute ?? 0, 0))).Where(IsValid);
                 }
 
                 if(Every.HasValue)
                 {
-                    dayDates = dayDates.SelectMany(d=>PartsInValidTime(d, Every.Value));
+                    dayDates = dayDates.SelectMany(d=>PartsInValidTime(d, Every.Value)).Where(IsValid);
                 }
 
                 return dayDates;
