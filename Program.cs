@@ -34,6 +34,12 @@ namespace ConsoleApp2
 
         public class Schedule
         {
+            public List<MonthOfYear> MonthsOfYear { get; private set; } = new List<MonthOfYear>();
+            public List<int> DaysOfMonth { get; private set; } = new List<int>();
+            public List<DayOfWeek> WeekDays { get; private set; } = new List<DayOfWeek>();
+            public List<Time> Times { get; private set; } = new List<Time>();
+            public TimeSpan? Every { get; set; }
+
             public bool IsTime(DateTime currentTime)
             {
                 if (MonthsOfYear.Any() && !MonthsOfYear.Any(x => (int)x == currentTime.Month))
@@ -93,16 +99,6 @@ namespace ConsoleApp2
 
                 return dayDates;
             }
-
-            private static IEnumerable<TimeSpan> PartsInPeriod(TimeSpan span, TimeSpan max)
-            {
-                var r = span;
-                while (r < max)
-                {
-                    yield return r;
-                    r = r + span;
-                }
-            }
             private IEnumerable<DateTime> PartsInValidTime(DateTime start, TimeSpan span)
             {
                 var c = start;
@@ -128,12 +124,6 @@ namespace ConsoleApp2
                     dt = dt.AddDays(7);
                 }
             }
-
-            public List<MonthOfYear> MonthsOfYear { get; private set; } = new List<MonthOfYear>();
-            public List<int> DaysOfMonth { get; private set; } = new List<int>();
-            public List<DayOfWeek> WeekDays { get; private set; } = new List<DayOfWeek>();
-            public List<Time> Times { get; private set; } = new List<Time>();
-            public TimeSpan? Every { get; set; }
         }
 
         public class ScheduleDefiner
