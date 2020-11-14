@@ -23,7 +23,7 @@ namespace ConsoleApp2
             var schedule = scheduled
                 .OnMonthsOfYear(MonthOfYear.Jan)
                 .OnWeekDays(DayOfWeek.Monday)
-                .OnTimes(Time.At(12, 00))
+                .OnTimes(Time.At(12))
                 .Every(TimeSpan.FromMinutes(5))
                 .Schedule;
             foreach(var t in schedule.GetScheduledTimes(DateTime.Now))
@@ -34,7 +34,7 @@ namespace ConsoleApp2
 
         public class Schedule
         {
-            public bool IsTime(DateTime currentTime, DateTime? lastExecution = null)
+            public bool IsTime(DateTime currentTime)
             {
                 if (MonthsOfYear.Any() && !MonthsOfYear.Any(x => (int)x == currentTime.Month))
                     return false;
@@ -45,12 +45,7 @@ namespace ConsoleApp2
                 if (Times.Any() && !Times.Any(x => x.IsTime(currentTime)))
                     return false;
 
-                if (lastExecution == null)
-                {
-                    lastExecution = new DateTime(currentTime.Year, currentTime.Month, currentTime.Day);
-                }
-
-                return !Every.HasValue || (currentTime - lastExecution) >= Every.Value;
+                return true;
             }
 
             public IEnumerable<DateTime> GetScheduledTimes(DateTime current)
@@ -86,7 +81,12 @@ namespace ConsoleApp2
 
                 if (Times.Any())
                 {
-                    dayDates = dayDates.SelectMany(d => Times.Where(t => t.Minute.HasValue).Select(t => new DateTime(d.Year, d.Month, d.Day, t.Hour, t.Minute.Value, 0)));
+                    dayDates = dayDates.SelectMany(d => Times.Select(t => new DateTime(d.Year, d.Month, d.Day, t.Hour, t.Minute ?? 0, 0)));
+                }
+
+                if(Every.HasValue)
+                {
+                    dayDates = dayDates.SelectMany(d=>PartsInValidTime(d, Every.Value));
                 }
 
                 return dayDates;
@@ -101,12 +101,25 @@ namespace ConsoleApp2
                     r = r + span;
                 }
             }
+            private IEnumerable<DateTime> PartsInValidTime(DateTime start, TimeSpan span)
+            {
+                var c = start;
+                while (IsTime(c))
+                {
+                    yield return c;
+                    c = c + span;
+                }
+            }
 
             private static IEnumerable<DateTime> DayOfWeekDatesForMonth(DayOfWeek dw, int year, int month)
             {
                 var dt = new DateTime(year, month, 1);
                 var offset = (int)dw - (int)dt.DayOfWeek;
-                dt.AddDays(offset);
+                dt = dt.AddDays(offset);
+                if(dt.Month != month)
+                {
+                    dt = dt.AddDays(7);
+                }
                 while (dt.Month == month)
                 {
                     yield return dt;
@@ -144,6 +157,7 @@ namespace ConsoleApp2
             public ScheduleDefiner OnTimes(params Time[] times)
             {
                 Schedule.Times.AddRange(times);
+                ValidateEveryIsValid();
                 return this;
             }
             public ScheduleDefiner Every(TimeSpan duration)
@@ -151,7 +165,22 @@ namespace ConsoleApp2
                 if (Schedule.Every.HasValue)
                     throw new ArgumentException("Every can only be set once per schedule");
                 Schedule.Every = duration;
+                ValidateEveryIsValid();
                 return this;
+            }
+
+            private void ValidateEveryIsValid()
+            {
+                foreach(var t in Schedule.Times)
+                {
+                    if(t.Minute.HasValue)
+                    {
+                        if(Schedule.Every.HasValue)
+                        {
+                            throw new ArgumentException("Times with minute declarations cannot be mixed with periodic 'Every' events");
+                        }
+                    }
+                }
             }
         }
 
@@ -165,10 +194,10 @@ namespace ConsoleApp2
 
             public bool IsTime(DateTime dateTime)
             {
-                return dateTime.Hour == Hour & dateTime.Minute == Minute;
+                return dateTime.Hour == Hour && (!Minute.HasValue || dateTime.Minute == Minute.Value);
             }
 
-            public static Time At(int hour, int? minute)
+            public static Time At(int hour, int? minute = null)
             {
                 return new Time(hour, minute);
             }
