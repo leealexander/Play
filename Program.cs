@@ -21,12 +21,12 @@ namespace ConsoleApp2
         {
             var scheduled = new ScheduleDefiner();
             var schedule = scheduled
-                //.OnMonthsOfYear(MonthOfYear.Jan)
+                .OnMonthsOfYear(MonthOfYear.Nov)
                 .OnWeekDays(DayOfWeek.Monday)
                 .OnTimes(Time.At(12))
                 .Every(TimeSpan.FromMinutes(5))
                 .Schedule;
-            foreach(var t in schedule.GetScheduledTimes(DateTime.Now, TimeSpan.FromDays(5)))
+            foreach(var t in schedule.GetScheduledTimes(DateTime.Now, TimeSpan.FromDays(200)))
             {
                 Console.WriteLine(t);
             }
@@ -54,24 +54,24 @@ namespace ConsoleApp2
                 return true;
             }
 
-            public IEnumerable<DateTime> GetScheduledTimes(DateTime current,  TimeSpan howFarAhead)
+            public IEnumerable<DateTime> GetScheduledTimes(DateTime start,  TimeSpan howFarAhead)
             {
                 IEnumerable<DateTime> monthDates;
-                var endDate = current + howFarAhead;
-                bool IsValid(DateTime dt) => dt >= current &&  dt < endDate;
+                var endDate = start + howFarAhead;
+                bool IsValid(DateTime dt) => dt >= start &&  dt <= endDate;
 
                 if (MonthsOfYear.Any())
                 {
-                    monthDates = MonthsOfYear.Select(m => new DateTime(current.Year, (int)m, 1, 0, 0, 0)).Where(IsValid);
+                    var months = new List<DateTime>();
                 }
                 else
                 {
-                    monthDates = new[] { current };
+                    monthDates = new[] { start };
                 }
                 IEnumerable<DateTime> dayDates;
                 if (!DaysOfMonth.Any() && !WeekDays.Any())
                 {
-                    dayDates = new[] { current };
+                    dayDates = new[] { start };
                 }
                 else
                 {
