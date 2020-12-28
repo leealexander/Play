@@ -17,11 +17,11 @@ namespace ConsoleApp2
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             var scheduled = new ScheduleDefiner();
             var schedule = scheduled
-                .OnMonthsOfYear(MonthOfYear.Nov)
+                .OnMonthsOfYear(MonthOfYear.Jan)
                 .OnWeekDays(DayOfWeek.Monday)
                 .OnTimes(Time.At(12))
                 .Every(TimeSpan.FromMinutes(5))
@@ -63,6 +63,13 @@ namespace ConsoleApp2
                 if (MonthsOfYear.Any())
                 {
                     var months = new List<DateTime>();
+                    for(var monthDate = start; monthDate < endDate; )
+                    {
+                        months.Add(monthDate);
+                        monthDate = monthDate.AddMonths(1);
+                        monthDate = new DateTime(monthDate.Year, monthDate.Month, 1);
+                    }
+                    monthDates = months.ToArray();
                 }
                 else
                 {
@@ -105,7 +112,7 @@ namespace ConsoleApp2
                 while (IsTime(c))
                 {
                     yield return c;
-                    c = c + span;
+                    c += span;
                 }
             }
 
